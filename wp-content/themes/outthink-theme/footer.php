@@ -1,10 +1,15 @@
 <?php
-
 ?>
 <footer>
     <div class="menu-footer">
         <div class="website-info-footer">
             <a href="/"><h2><?php bloginfo('name'); ?></h2></a>
+            <small>A weekly briefing that helps media leaders think ahead of the industry.</small>
+            <span>
+                Curating the most impactful stories at the intersection of<br>
+                Artificial Intelligence and the Media Industry. Designed for<br>
+                media leaders who think ahead.
+            </span>
         </div>
         <div class="website-sections-footer">
             <h4>Sections</h4>

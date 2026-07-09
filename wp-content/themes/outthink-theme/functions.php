@@ -37,3 +37,19 @@ function mytheme_enqueue_assets() {
     );
 }
 add_action('wp_enqueue_scripts', 'mytheme_enqueue_assets');
+
+function outthink_track_post_views(): void
+{
+    if (!is_single() || get_post_type() !== 'post') {
+        return;
+    }
+
+    $post_id = get_queried_object_id();
+    $views = intval(get_post_meta($post_id, 'outthink_post_views', true));
+
+    update_post_meta($post_id, 'outthink_post_views', $views + 1);
+}
+
+add_action('wp', 'outthink_track_post_views');
+
+require_once get_template_directory() . '/inc/news-importer.php';
