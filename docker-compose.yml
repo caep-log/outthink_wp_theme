@@ -1,0 +1,41 @@
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: wp-outthink-db
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: root
+
+    volumes:
+      - db_data_outthink:/var/lib/mysql
+
+  wordpress:
+    build:
+      context: .
+
+    restart: unless-stopped
+
+    depends_on:
+      - db
+
+    ports:
+      - "8081:80"
+
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DEBUG: "1"
+
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+
+volumes:
+  db_data_outthink:
