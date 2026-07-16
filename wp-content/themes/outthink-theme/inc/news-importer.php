@@ -9,6 +9,11 @@ const OUTTHINK_NEWS_IMPORT_LOCK = 'outthink_news_import_fetching';
 const OUTTHINK_NEWS_IMPORT_API_URL = 'https://qqrozvm513.execute-api.us-east-1.amazonaws.com/deploy/api-fetch';
 const OUTTHINK_NEWS_IMPORT_MIN_SCORE = 18;
 const OUTTHINK_NEWS_IMPORT_LIMIT = 20;
+const OUTTHINK_NEWS_IMPORT_INTERVAL = 2 * HOUR_IN_SECONDS;
+const OUTTHINK_NEWS_IMPORT_RETRY_INTERVAL = 15 * MINUTE_IN_SECONDS;
+const OUTTHINK_NEWS_IMPORT_LAST_ATTEMPT = 'outthink_news_import_last_attempt';
+const OUTTHINK_NEWS_IMPORT_LAST_SUCCESS = 'outthink_news_import_last_success';
+const OUTTHINK_NEWS_IMPORT_LAST_CREATED = 'outthink_news_import_last_created';
 
 function outthink_news_import_register_meta(): void
 {
@@ -24,7 +29,7 @@ add_action('init', 'outthink_news_import_register_meta');
 function outthink_news_import_add_cron_interval(array $schedules): array
 {
     $schedules['every_2_hours'] = [
-        'interval' => 2 * HOUR_IN_SECONDS,
+        'interval' => OUTTHINK_NEWS_IMPORT_INTERVAL,
         'display'  => __('Every 2 Hours', 'outthink-theme'),
     ];
 
@@ -46,6 +51,38 @@ function outthink_news_import_activate(): void
 
 add_action('after_switch_theme', 'outthink_news_import_activate');
 
+function outthink_news_import_ensure_scheduled(): void
+{
+    if (!wp_next_scheduled(OUTTHINK_NEWS_IMPORT_CRON)) {
+        wp_schedule_event(time() + MINUTE_IN_SECONDS, 'every_2_hours', OUTTHINK_NEWS_IMPORT_CRON);
+    }
+}
+
+add_action('init', 'outthink_news_import_ensure_scheduled');
+
+function outthink_news_import_fetch_if_due(): void
+{
+    if (wp_doing_cron() || wp_doing_ajax()) {
+        return;
+    }
+
+    $now = time();
+    $last_success = intval(get_option(OUTTHINK_NEWS_IMPORT_LAST_SUCCESS, 0));
+    $last_attempt = intval(get_option(OUTTHINK_NEWS_IMPORT_LAST_ATTEMPT, 0));
+
+    if ($last_success && ($now - $last_success) < OUTTHINK_NEWS_IMPORT_INTERVAL) {
+        return;
+    }
+
+    if ($last_attempt && ($now - $last_attempt) < OUTTHINK_NEWS_IMPORT_RETRY_INTERVAL) {
+        return;
+    }
+
+    outthink_news_import_fetch_articles();
+}
+
+add_action('init', 'outthink_news_import_fetch_if_due', 20);
+
 function outthink_news_import_deactivate(): void
 {
     wp_clear_scheduled_hook(OUTTHINK_NEWS_IMPORT_CRON);
@@ -62,6 +99,7 @@ function outthink_news_import_fetch_articles(): bool
     }
 
     set_transient(OUTTHINK_NEWS_IMPORT_LOCK, true, MINUTE_IN_SECONDS);
+    update_option(OUTTHINK_NEWS_IMPORT_LAST_ATTEMPT, time(), false);
 
     $response = wp_remote_post(OUTTHINK_NEWS_IMPORT_API_URL, [
         'timeout' => 25,
@@ -98,6 +136,8 @@ function outthink_news_import_fetch_articles(): bool
 
     $articles = array_slice($articles, 0, OUTTHINK_NEWS_IMPORT_LIMIT);
 
+    $created_count = 0;
+
     foreach ($articles as $article) {
         if ($article['score'] < OUTTHINK_NEWS_IMPORT_MIN_SCORE) {
             continue;
@@ -107,12 +147,48 @@ function outthink_news_import_fetch_articles(): bool
             continue;
         }
 
-        outthink_news_import_create_post($article);
+        $post_id = outthink_news_import_create_post($article);
+
+        if ($post_id) {
+            $created_count++;
+        }
     }
+
+    update_option(OUTTHINK_NEWS_IMPORT_LAST_SUCCESS, time(), false);
+    update_option(OUTTHINK_NEWS_IMPORT_LAST_CREATED, $created_count, false);
 
     delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
     return true;
 }
+
+function outthink_news_import_manual_url(): string
+{
+    return wp_nonce_url(
+        admin_url('admin-post.php?action=outthink_news_import_manual'),
+        'outthink_news_import_manual'
+    );
+}
+
+function outthink_news_import_handle_manual_fetch(): void
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You are not allowed to run this import.', 'outthink-theme'));
+    }
+
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'outthink_news_import_manual')) {
+        wp_die(__('Invalid request.', 'outthink-theme'));
+    }
+
+    $news_imported = outthink_news_import_fetch_articles();
+    $events_imported = function_exists('outthink_events_import_fetch_events') ? outthink_events_import_fetch_events() : false;
+    $imported = ($news_imported || $events_imported) ? '1' : '0';
+    $redirect = remove_query_arg('outthink_news_imported', wp_get_referer() ?: home_url('/'));
+
+    wp_safe_redirect(add_query_arg('outthink_news_imported', $imported, $redirect));
+    exit;
+}
+
+add_action('admin_post_outthink_news_import_manual', 'outthink_news_import_handle_manual_fetch');
 
 function outthink_news_import_normalize_articles(array $items): array
 {

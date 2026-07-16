@@ -10,7 +10,16 @@ $watch_now_query = new WP_Query([
 ?>
 
 <section class="watch-now-section">
-    <h1><?php esc_html_e('Watch Now', 'outthink-theme'); ?></h1>
+    <div class="section-header">
+        <div>
+            <small class="section-label"><?php esc_html_e('Visual Desk', 'outthink-theme'); ?></small>
+            <h1><?php esc_html_e('Watch Now', 'outthink-theme'); ?></h1>
+        </div>
+        <div class="section-tags">
+            <span><?php esc_html_e('Video', 'outthink-theme'); ?></span>
+            <span><?php esc_html_e('Analysis', 'outthink-theme'); ?></span>
+        </div>
+    </div>
 
     <?php if ($watch_now_query->have_posts()) : ?>
         <div class="watch-now-list">
@@ -25,7 +34,7 @@ $watch_now_query = new WP_Query([
                 }
                 ?>
                 <article class="watch-now-item">
-                    <video controls preload="metadata">
+                    <video autoplay loop muted playsinline preload="metadata">
                         <source src="<?php echo esc_url($video_url); ?>" type="<?php echo esc_attr(get_post_mime_type(get_the_ID())); ?>">
                     </video>
 

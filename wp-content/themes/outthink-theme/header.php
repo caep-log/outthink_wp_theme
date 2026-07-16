@@ -10,7 +10,7 @@
     <header class="outthink-header">
         <nav>
             <div class="outthink-header-title">
-                <a href="/"><h3><?php bloginfo('name'); ?></h3></a>
+                <a href="/"><h2><?php bloginfo('name'); ?></h2></a>
             </div>
             <div class="outthink-header-menu">
                 <a href="">Top Stories</a>
@@ -19,6 +19,11 @@
                 <a href="">Events</a>
             </div>
             <div class="outthink-header-search">
+                <?php if (current_user_can('manage_options') && function_exists('outthink_news_import_manual_url')) : ?>
+                    <a class="outthink-header-fetch" href="<?php echo esc_url(outthink_news_import_manual_url()); ?>">
+                        Fetch notes
+                    </a>
+                <?php endif; ?>
                 <i class="bi bi-search"></i>
             </div>
         </nav>

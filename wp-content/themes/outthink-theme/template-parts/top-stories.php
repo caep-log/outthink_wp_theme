@@ -47,7 +47,17 @@ $indicator_icons = [
 ?>
 
 <section class="top-stories-section">
-    <h1>Top Stories</h1>
+    <div class="section-header">
+        <div>
+            <small class="section-label"><?php esc_html_e('Lead Briefing', 'outthink-theme'); ?></small>
+            <h1><?php esc_html_e('Top Stories', 'outthink-theme'); ?></h1>
+        </div>
+        <div class="section-tags">
+            <span><?php esc_html_e('AI', 'outthink-theme'); ?></span>
+            <span><?php esc_html_e('Media', 'outthink-theme'); ?></span>
+            <span><?php esc_html_e('Strategy', 'outthink-theme'); ?></span>
+        </div>
+    </div>
 
     <?php if ($top_stories_query->have_posts()) : ?>
         <div class="top-stories-list">
@@ -59,6 +69,7 @@ $indicator_icons = [
 
                 $categories = get_the_category();
                 $category_name = !empty($categories) ? $categories[0]->name : __('News', 'outthink-theme');
+                $post_tags = get_the_tags();
                 $image_url = get_the_post_thumbnail_url(get_the_ID(), 'large');
 
                 if (!$image_url) {
@@ -70,16 +81,24 @@ $indicator_icons = [
                 }
                 ?>
                 <a href="<?php the_permalink(); ?>" class="<?php echo esc_attr($story_classes[$story_index] ?? 'top-storie-item'); ?>">
-                    <div class="<?php echo esc_attr($indicator_classes[$story_index] ?? 'indicator-note'); ?>">
+                    <div class="indicator <?php echo esc_attr($indicator_classes[$story_index] ?? 'indicator-note'); ?>">
                         <i class="bi <?php echo esc_attr($indicator_icons[$story_index] ?? 'bi-star'); ?>"></i>
                         <span>#<?php echo esc_html($story_index + 1); ?></span>
                     </div>
 
                     <div class="post-content">
                         <div class="meta-post">
-                            <span><?php echo esc_html($category_name); ?></span>
+                            <small><?php echo esc_html($category_name); ?></small>
                             <h1><?php the_title(); ?></h1>
-                            <span><?php echo esc_html(wp_trim_words(get_the_excerpt(), 24)); ?></span>
+                            <p><?php echo esc_html(wp_trim_words(get_the_excerpt(), 24)); ?></p>
+
+                            <?php if (!empty($post_tags)) : ?>
+                                <div class="article-tags">
+                                    <?php foreach (array_slice($post_tags, 0, 3) as $post_tag) : ?>
+                                        <small><?php echo esc_html($post_tag->name); ?></small>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <?php if ($image_url) : ?>
