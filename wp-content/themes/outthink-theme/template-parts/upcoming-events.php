@@ -10,7 +10,7 @@ $upcoming_events_query = new WP_Query([
 ]);
 ?>
 
-<section class="upcoming-events-section">
+<section id="events" class="upcoming-events-section">
     <div class="section-header">
         <div>
             <small class="section-label"><?php esc_html_e('Agenda', 'outthink-theme'); ?></small>

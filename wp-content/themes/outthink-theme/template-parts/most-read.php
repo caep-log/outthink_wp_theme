@@ -16,7 +16,7 @@ $most_read_query = new WP_Query([
 ]);
 ?>
 
-<section class="most-read-section">
+<section id="most-read" class="most-read-section">
     <div class="section-header">
         <div>
             <small class="section-label"><?php esc_html_e('Reader Signal', 'outthink-theme'); ?></small>

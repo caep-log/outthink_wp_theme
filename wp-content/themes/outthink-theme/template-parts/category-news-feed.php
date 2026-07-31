@@ -55,7 +55,7 @@ if ($category_news->have_posts()) :
     $category_posts = $category_news->posts;
 ?>
 
-<section class="category-news-grid-section">
+<section id="category-news" class="category-news-grid-section">
     <div class="news-category-header">
         <h3><?php echo esc_html($section_title); ?></h3>
     </div>

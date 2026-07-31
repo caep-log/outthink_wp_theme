@@ -38,7 +38,7 @@ $bento_labels = [
 ];
 ?>
 
-<section class="top-stories-bento-section">
+<section id="top-stories" class="top-stories-bento-section">
     <div class="section-header">
         <div>
             <small class="section-label"><?php esc_html_e('Ranked Intelligence', 'outthink-theme'); ?></small>

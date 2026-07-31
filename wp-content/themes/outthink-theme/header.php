@@ -13,10 +13,10 @@
                 <a href="/"><h2><?php bloginfo('name'); ?></h2></a>
             </div>
             <div class="outthink-header-menu">
-                <a href="">Top Stories</a>
-                <a href="">Artificial Intelligence</a>
-                <a href="">Media Industry</a>
-                <a href="">Events</a>
+                <a href="#top-stories">Top Stories</a>
+                <a href="#category-news">Artificial Intelligence</a>
+                <a href="#most-read">Media Industry</a>
+                <a href="#events">Events</a>
             </div>
             <div class="outthink-header-search">
                 <?php if (current_user_can('manage_options') && function_exists('outthink_news_import_manual_url')) : ?>
