@@ -70,6 +70,9 @@ $bento_labels = [
                 if (!$image_url) {
                     $image_url = get_post_meta(get_the_ID(), 'fifu_image_url', true);
                 }
+
+                // Ocultar categoría y descripción en el 2° y 3° post.
+                $hide_meta = in_array($bento_index, [1, 2], true);
                 ?>
                 <a href="<?php the_permalink(); ?>" class="top-stories-bento-card <?php echo esc_attr($bento_classes[$bento_index] ?? 'bento-story-item'); ?>">
                     <?php if ($image_url) : ?>
@@ -80,9 +83,18 @@ $bento_labels = [
 
                     <div class="bento-story-content">
                         <small><?php echo esc_html($bento_labels[$bento_index] ?? __('Top Note', 'outthink-theme')); ?></small>
-                        <span><?php echo esc_html($category_name); ?></span>
+
+                        <?php if (!$hide_meta) : ?>
+                            <span><?php echo esc_html($category_name); ?></span>
+                        <?php endif; ?>
+
                         <h1><?php the_title(); ?></h1>
-                        <p><?php echo esc_html(wp_trim_words(get_the_excerpt(), $bento_index < 3 ? 18 : 10)); ?></p>
+
+                        <?php if (!$hide_meta) : ?>
+                            <p>
+                                <?php echo esc_html(wp_trim_words(get_the_excerpt(), $bento_index < 3 ? 18 : 10)); ?>
+                            </p>
+                        <?php endif; ?>
 
                         <?php if (!empty($post_tags)) : ?>
                             <div class="article-tags">

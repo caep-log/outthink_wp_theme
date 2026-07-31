@@ -75,14 +75,14 @@ define( 'DB_COLLATE', getenv_docker('WORDPRESS_DB_COLLATE', '') );
  *
  * @since 2.6.0
  */
-define( 'AUTH_KEY',         getenv_docker('WORDPRESS_AUTH_KEY',         'b5836bb4e6b9c80cc6cccf5093238a36c7863733') );
-define( 'SECURE_AUTH_KEY',  getenv_docker('WORDPRESS_SECURE_AUTH_KEY',  '1a56c878df46288ddef7b5376ea959c9ceae8f42') );
-define( 'LOGGED_IN_KEY',    getenv_docker('WORDPRESS_LOGGED_IN_KEY',    '935b23e18615f3e6f4eecc6f833b748e77e74079') );
-define( 'NONCE_KEY',        getenv_docker('WORDPRESS_NONCE_KEY',        '0328bec752ce5a41fa50df1dd41f2ec7f03d98b4') );
-define( 'AUTH_SALT',        getenv_docker('WORDPRESS_AUTH_SALT',        'd56d475d55a5e811ca11530aee841e6b7d97492c') );
-define( 'SECURE_AUTH_SALT', getenv_docker('WORDPRESS_SECURE_AUTH_SALT', '30b604bfb014d27774bbc0ebacc9be225884b138') );
-define( 'LOGGED_IN_SALT',   getenv_docker('WORDPRESS_LOGGED_IN_SALT',   '4cf21c2315f11354f0a1a904e809a6ebd782a1fa') );
-define( 'NONCE_SALT',       getenv_docker('WORDPRESS_NONCE_SALT',       '7f57216f7e8d0ae904857ef8581cffd15a7b542f') );
+define( 'AUTH_KEY',         getenv_docker('WORDPRESS_AUTH_KEY',         'b09ba37ce06a8b60138b501e719e567db8233ebf') );
+define( 'SECURE_AUTH_KEY',  getenv_docker('WORDPRESS_SECURE_AUTH_KEY',  'a748c4b3c56f87d2c2a1b8340012b5d1a1fdbb1d') );
+define( 'LOGGED_IN_KEY',    getenv_docker('WORDPRESS_LOGGED_IN_KEY',    'bb61289efe1e235f35f0a6b3d04303b663cd9ca8') );
+define( 'NONCE_KEY',        getenv_docker('WORDPRESS_NONCE_KEY',        '99893974355764425f699dda68df349a8eca2084') );
+define( 'AUTH_SALT',        getenv_docker('WORDPRESS_AUTH_SALT',        '920f11b98ed20e53e6a4aee43bbac6f6a97a7eff') );
+define( 'SECURE_AUTH_SALT', getenv_docker('WORDPRESS_SECURE_AUTH_SALT', '8b3b40207d98deef8840b95199465f0506825fd5') );
+define( 'LOGGED_IN_SALT',   getenv_docker('WORDPRESS_LOGGED_IN_SALT',   '26c70a8864ab1a91a5a5aa0a81951c1c21181273') );
+define( 'NONCE_SALT',       getenv_docker('WORDPRESS_NONCE_SALT',       'fb49debac383f917e0c3bd58414193d88bec2d44') );
 // (See also https://wordpress.stackexchange.com/a/152905/199287)
 
 /**#@-*/
@@ -126,6 +126,18 @@ if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strpos($_SERVER['HTTP_X_FORWARD
 
 if ($configExtra = getenv_docker('WORDPRESS_CONFIG_EXTRA', '')) {
 	eval($configExtra);
+}
+
+if (isset($_SERVER['HTTP_HOST']) && str_contains($_SERVER['HTTP_HOST'], 'trycloudflare.com')) {
+    $_SERVER['HTTPS'] = 'on';
+
+    define('WP_HOME', 'https://' . $_SERVER['HTTP_HOST']);
+    define('WP_SITEURL', 'https://' . $_SERVER['HTTP_HOST']);
+}
+
+if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+    define('WP_HOME', 'https://' . $_SERVER['HTTP_X_FORWARDED_HOST']);
+    define('WP_SITEURL', 'https://' . $_SERVER['HTTP_X_FORWARDED_HOST']);
 }
 
 /* That's all, stop editing! Happy publishing. */
