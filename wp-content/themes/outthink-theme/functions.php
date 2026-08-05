@@ -54,3 +54,5 @@ add_action('wp', 'outthink_track_post_views');
 
 require_once get_template_directory() . '/inc/news-importer.php';
 require_once get_template_directory() . '/inc/events-importer.php';
+
+require_once get_template_directory() . '/inc/seo.php';

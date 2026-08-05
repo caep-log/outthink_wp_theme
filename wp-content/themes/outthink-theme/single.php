@@ -10,6 +10,14 @@ while (have_posts()) :
     $category_ids = wp_list_pluck($categories, 'term_id');
     $post_tags = get_the_tags($post_id);
     $image_url = get_the_post_thumbnail_url($post_id, 'large');
+    $original_source = get_post_meta($post_id, 'newsapi_source', true);
+    $original_url = get_post_meta($post_id, 'newsapi_url', true);
+    $original_published = get_post_meta($post_id, 'newsapi_published', true);
+    $original_date = $original_published && strtotime($original_published)
+        ? wp_date('F j, Y', strtotime($original_published))
+        : get_the_date('F j, Y');
+    $share_url = get_permalink($post_id);
+    $share_title = get_the_title($post_id);
 
     if (!$image_url) {
         $image_url = get_post_meta($post_id, 'newsapi_image_url', true);
@@ -17,6 +25,11 @@ while (have_posts()) :
 
     if (!$image_url) {
         $image_url = get_post_meta($post_id, 'fifu_image_url', true);
+    }
+
+    if (!$image_url) {
+        $upload_dir = wp_upload_dir();
+        $image_url = trailingslashit($upload_dir['baseurl']) . '2026/08/reading-news.jpg';
     }
 
     $related_query_args = [
@@ -56,13 +69,28 @@ while (have_posts()) :
             <header class="single-news-header">
                 <div class="single-news-kicker">
                     <span><?php echo esc_html($category_name); ?></span>
-                    <small><?php echo esc_html(get_the_date()); ?></small>
                 </div>
 
                 <h1><?php the_title(); ?></h1>
 
                 <?php if (has_excerpt()) : ?>
                     <p><?php echo esc_html(get_the_excerpt()); ?></p>
+                <?php endif; ?>
+
+                <?php if ($original_source || $original_url) : ?>
+                    <p class="single-news-original-source">
+                        <?php if ($original_url) : ?>
+                            <a href="<?php echo esc_url($original_url); ?>" target="_blank" rel="noopener noreferrer">
+                        <?php endif; ?>
+                        <?php
+                        printf(
+                            esc_html__('Originally reported by %1$s · %2$s', 'outthink-theme'),
+                            esc_html($original_source ?: __('the original source', 'outthink-theme')),
+                            esc_html($original_date)
+                        );
+                        ?>
+                        <?php if ($original_url) : ?></a><?php endif; ?>
+                    </p>
                 <?php endif; ?>
 
                 <?php if (!empty($post_tags)) : ?>
@@ -81,7 +109,32 @@ while (have_posts()) :
             <?php endif; ?>
 
             <div class="single-news-content">
-                <?php the_content(); ?>
+                <?php
+                $content = apply_filters('the_content', get_the_content());
+                $continue_label = sprintf(
+                    'Continue reading at %s [ Read original article ↗ ]',
+                    $original_source ?: __('the original source', 'outthink-theme')
+                );
+                $content = str_replace(
+                    ['Read the full article here', 'Read full article'],
+                    esc_html($continue_label),
+                    $content
+                );
+                echo $content;
+                ?>
+            </div>
+
+            <div class="single-news-share" aria-label="<?php esc_attr_e('Share this article', 'outthink-theme'); ?>">
+                <span><?php esc_html_e('Share', 'outthink-theme'); ?></span>
+                <a href="<?php echo esc_url(add_query_arg('u', $share_url, 'https://www.facebook.com/sharer/sharer.php')); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Share on Facebook', 'outthink-theme'); ?>">
+                    <i class="bi bi-facebook" aria-hidden="true"></i>
+                </a>
+                <a href="<?php echo esc_url(add_query_arg(['text' => $share_title, 'url' => $share_url], 'https://twitter.com/intent/tweet')); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Share on X', 'outthink-theme'); ?>">
+                    <i class="bi bi-twitter-x" aria-hidden="true"></i>
+                </a>
+                <a href="<?php echo esc_url(add_query_arg(['mini' => 'true', 'url' => $share_url, 'title' => $share_title], 'https://www.linkedin.com/shareArticle')); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Share on LinkedIn', 'outthink-theme'); ?>">
+                    <i class="bi bi-linkedin" aria-hidden="true"></i>
+                </a>
             </div>
         </article>
 

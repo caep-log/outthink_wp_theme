@@ -41,8 +41,7 @@ $bento_labels = [
 <section id="top-stories" class="top-stories-bento-section">
     <div class="section-header">
         <div>
-            <small class="section-label"><?php esc_html_e('Ranked Intelligence', 'outthink-theme'); ?></small>
-            <h1><?php esc_html_e('Top 5 Notes', 'outthink-theme'); ?></h1>
+            <h1><?php esc_html_e('Top Stories', 'outthink-theme'); ?></h1>
         </div>
         <div class="section-tags">
             <span><?php esc_html_e('Trending', 'outthink-theme'); ?></span>
@@ -69,6 +68,11 @@ $bento_labels = [
 
                 if (!$image_url) {
                     $image_url = get_post_meta(get_the_ID(), 'fifu_image_url', true);
+                }
+
+                if (!$image_url) {
+                    $upload_dir = wp_upload_dir();
+                    $image_url = trailingslashit($upload_dir['baseurl']) . '2026/08/reading-news.jpg';
                 }
 
                 // Ocultar categoría y descripción en el 2° y 3° post.

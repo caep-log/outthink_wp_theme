@@ -24,7 +24,21 @@
                         Fetch notes
                     </a>
                 <?php endif; ?>
-                <i class="bi bi-search"></i>
+                <form
+                    role="search"
+                    method="get"
+                    action="<?php echo esc_url(home_url('/')); ?>"
+                    class="outthink-header-search-form"
+                >
+                    <input
+                        type="search"
+                        name="s"
+                        placeholder="Search news..."
+                    >
+                    <button type="submit" aria-label="Search">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
             </div>
         </nav>
     </header>
