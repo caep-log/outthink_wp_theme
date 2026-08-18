@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 const OUTTHINK_EVENTS_IMPORT_CRON = 'outthink_events_import_cron';
 const OUTTHINK_EVENTS_IMPORT_LOCK = 'outthink_events_import_fetching';
-const OUTTHINK_EVENTS_IMPORT_API_URL = 'https://qqrozvm513.execute-api.us-east-1.amazonaws.com/deploy/api-fetch';
+const OUTTHINK_EVENTS_IMPORT_API_URL = 'https://ne405b29o8.execute-api.us-east-1.amazonaws.com/prod/news';
 const OUTTHINK_EVENTS_IMPORT_LIMIT = 20;
 const OUTTHINK_EVENTS_IMPORT_INTERVAL = 2 * HOUR_IN_SECONDS;
 const OUTTHINK_EVENTS_IMPORT_RETRY_INTERVAL = 15 * MINUTE_IN_SECONDS;

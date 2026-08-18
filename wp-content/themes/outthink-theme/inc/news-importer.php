@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 const OUTTHINK_NEWS_IMPORT_CRON = 'outthink_news_import_cron';
 const OUTTHINK_NEWS_IMPORT_LOCK = 'outthink_news_import_fetching';
-const OUTTHINK_NEWS_IMPORT_API_URL = 'https://qqrozvm513.execute-api.us-east-1.amazonaws.com/deploy/api-fetch';
+const OUTTHINK_NEWS_IMPORT_API_URL = 'https://ne405b29o8.execute-api.us-east-1.amazonaws.com/prod/news';
 const OUTTHINK_NEWS_IMPORT_MIN_SCORE = 18;
 const OUTTHINK_NEWS_IMPORT_LIMIT = 20;
 const OUTTHINK_NEWS_IMPORT_INTERVAL = 2 * HOUR_IN_SECONDS;
@@ -14,6 +14,17 @@ const OUTTHINK_NEWS_IMPORT_RETRY_INTERVAL = 15 * MINUTE_IN_SECONDS;
 const OUTTHINK_NEWS_IMPORT_LAST_ATTEMPT = 'outthink_news_import_last_attempt';
 const OUTTHINK_NEWS_IMPORT_LAST_SUCCESS = 'outthink_news_import_last_success';
 const OUTTHINK_NEWS_IMPORT_LAST_CREATED = 'outthink_news_import_last_created';
+const OUTTHINK_NEWS_IMPORT_FEED_INDEX = 'outthink_news_import_feed_index';
+const OUTTHINK_NEWS_IMPORT_FEEDS = [
+    'media-industry',
+    'media-bussiness',
+    'media',
+    'ai-tech',
+    'wordpress-cms',
+    'audience-cms',
+    'audence-seo',
+    'regional',
+];
 
 function outthink_news_import_register_meta(): void
 {
@@ -101,6 +112,10 @@ function outthink_news_import_fetch_articles(): bool
     set_transient(OUTTHINK_NEWS_IMPORT_LOCK, true, MINUTE_IN_SECONDS);
     update_option(OUTTHINK_NEWS_IMPORT_LAST_ATTEMPT, time(), false);
 
+    $feed_count = count(OUTTHINK_NEWS_IMPORT_FEEDS);
+    $feed_index = intval(get_option(OUTTHINK_NEWS_IMPORT_FEED_INDEX, 0)) % $feed_count;
+    $type_feed = OUTTHINK_NEWS_IMPORT_FEEDS[$feed_index];
+
     $response = wp_remote_post(OUTTHINK_NEWS_IMPORT_API_URL, [
         'timeout' => 25,
         'headers' => [
@@ -109,12 +124,13 @@ function outthink_news_import_fetch_articles(): bool
         ],
         'body' => wp_json_encode([
             'typeFetch' => 'news',
+            'typeFeed'  => $type_feed,
         ]),
     ]);
 
     if (is_wp_error($response)) {
         delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
-        error_log('Outthink news import error: ' . $response->get_error_message());
+        error_log('Outthink news import error for ' . $type_feed . ': ' . $response->get_error_message());
         return false;
     }
 
@@ -123,11 +139,18 @@ function outthink_news_import_fetch_articles(): bool
 
     if (empty($data['data']) || !is_array($data['data'])) {
         delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
-        error_log('Outthink news import error: empty API response');
+        error_log('Outthink news import error: empty API response for ' . $type_feed);
         return false;
     }
 
     $articles = outthink_news_import_normalize_articles($data['data']);
+
+    if (!$articles) {
+        delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
+        error_log('Outthink news import error: no articles returned');
+        return false;
+    }
+
     $articles = outthink_news_import_unique_articles($articles);
 
     usort($articles, static function (array $a, array $b): int {
@@ -156,6 +179,7 @@ function outthink_news_import_fetch_articles(): bool
 
     update_option(OUTTHINK_NEWS_IMPORT_LAST_SUCCESS, time(), false);
     update_option(OUTTHINK_NEWS_IMPORT_LAST_CREATED, $created_count, false);
+    update_option(OUTTHINK_NEWS_IMPORT_FEED_INDEX, ($feed_index + 1) % $feed_count, false);
 
     delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
     return true;
