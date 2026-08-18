@@ -203,7 +203,12 @@ function outthink_news_import_handle_manual_fetch(): void
         wp_die(__('Invalid request.', 'outthink-theme'));
     }
 
-    $news_imported = outthink_news_import_fetch_articles();
+    $news_imported = false;
+
+    for ($feed = 0, $feed_count = count(OUTTHINK_NEWS_IMPORT_FEEDS); $feed < $feed_count; $feed++) {
+        $news_imported = outthink_news_import_fetch_articles() || $news_imported;
+    }
+
     $events_imported = function_exists('outthink_events_import_fetch_events') ? outthink_events_import_fetch_events() : false;
     $imported = ($news_imported || $events_imported) ? '1' : '0';
     $redirect = remove_query_arg('outthink_news_imported', wp_get_referer() ?: home_url('/'));
