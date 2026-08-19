@@ -25,8 +25,10 @@ if (!$selected_category instanceof WP_Term) {
 
 $query_args = [
     'post_type'      => 'post',
+    'post_status'    => 'publish',
     'posts_per_page' => 8,
-    'offset'         => 5,
+    'orderby'        => 'date',
+    'order'          => 'DESC',
 ];
 
 if ($selected_category instanceof WP_Term) {
@@ -61,7 +63,7 @@ if ($category_news->have_posts()) :
     </div>
 
     <div class="category-news-grid">
-        <?php foreach (array_slice($category_posts, 0, 8) as $grid_post) : ?>
+        <?php foreach ($category_posts as $grid_post) : ?>
             <article class="category-news-grid__item">
                 <div class="category-news-grid__info">
                     <h2 class="category-news-grid__title">

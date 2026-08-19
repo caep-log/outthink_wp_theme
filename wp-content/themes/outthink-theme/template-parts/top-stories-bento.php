@@ -4,8 +4,10 @@ $top_stories_bento_query = new WP_Query([
     'post_status'         => 'publish',
     'posts_per_page'      => 5,
     'ignore_sticky_posts' => true,
-    'meta_key'            => 'score',
-    'orderby'             => 'meta_value_num',
+    'orderby'             => [
+        'scored' => 'DESC',
+        'date'   => 'DESC',
+    ],
     'order'               => 'DESC',
     'date_query'          => [
         [
@@ -14,9 +16,14 @@ $top_stories_bento_query = new WP_Query([
         ],
     ],
     'meta_query'          => [
-        [
+        'relation' => 'OR',
+        'scored' => [
             'key'     => 'score',
             'compare' => 'EXISTS',
+        ],
+        'unscored' => [
+            'key'     => 'score',
+            'compare' => 'NOT EXISTS',
         ],
     ],
 ]);
