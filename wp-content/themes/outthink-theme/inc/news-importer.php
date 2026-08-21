@@ -106,6 +106,7 @@ add_action(OUTTHINK_NEWS_IMPORT_CRON, 'outthink_news_import_fetch_articles');
 function outthink_news_import_fetch_articles(): bool
 {
     if (get_transient(OUTTHINK_NEWS_IMPORT_LOCK)) {
+        error_log('Outthink news import skipped: another import is already running');
         return false;
     }
 
@@ -116,25 +117,51 @@ function outthink_news_import_fetch_articles(): bool
     $feed_index = intval(get_option(OUTTHINK_NEWS_IMPORT_FEED_INDEX, 0)) % $feed_count;
     $type_feed = OUTTHINK_NEWS_IMPORT_FEEDS[$feed_index];
 
-    $response = wp_remote_post(OUTTHINK_NEWS_IMPORT_API_URL, [
-        'timeout' => 25,
-        'headers' => [
-            'User-Agent'   => 'WordPress-Outthink-Theme/1.0',
-            'Content-Type' => 'application/json',
-        ],
-        'body' => wp_json_encode([
-            'typeFetch' => 'news',
-            'typeFeed'  => $type_feed,
-        ]),
-    ]);
+    error_log('Outthink news import request: method=GET url=' . OUTTHINK_NEWS_IMPORT_API_URL . ' feed=' . $type_feed);
 
-    if (is_wp_error($response)) {
+    if (!function_exists('curl_init')) {
         delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
-        error_log('Outthink news import error for ' . $type_feed . ': ' . $response->get_error_message());
+        error_log('Outthink news import error for ' . $type_feed . ': cURL is not available');
         return false;
     }
 
-    $body = wp_remote_retrieve_body($response);
+    $curl = curl_init(OUTTHINK_NEWS_IMPORT_API_URL);
+    curl_setopt_array($curl, [
+        CURLOPT_CUSTOMREQUEST  => 'GET',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT        => 25,
+        CURLOPT_HTTPHEADER     => [
+            'User-Agent: WordPress-Outthink-Theme/1.0',
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS     => wp_json_encode([
+            'typeFetch' => 'news',
+            'typeFeed'  => $type_feed,
+        ]),
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+
+    $body = curl_exec($curl);
+    $curl_error = curl_error($curl);
+    $status_code = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+
+    if ($body === false) {
+        delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
+        error_log('Outthink news import error for ' . $type_feed . ': ' . ($curl_error ?: 'cURL request failed'));
+        return false;
+    }
+
+    error_log('Outthink news import response: feed=' . $type_feed . ' status=' . $status_code . ' body_length=' . strlen($body) . ' body=' . substr($body, 0, 2000));
+
+    if ($status_code < 200 || $status_code >= 300) {
+        delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
+        error_log('Outthink news import error: unexpected HTTP status ' . $status_code . ' for ' . $type_feed);
+        return false;
+    }
+
     $data = json_decode($body, true);
 
     if (empty($data['data']) || !is_array($data['data'])) {
@@ -144,6 +171,7 @@ function outthink_news_import_fetch_articles(): bool
     }
 
     $articles = outthink_news_import_normalize_articles($data['data']);
+    error_log('Outthink news import normalized articles: feed=' . $type_feed . ' count=' . count($articles));
 
     if (!$articles) {
         delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
@@ -182,6 +210,7 @@ function outthink_news_import_fetch_articles(): bool
     update_option(OUTTHINK_NEWS_IMPORT_FEED_INDEX, ($feed_index + 1) % $feed_count, false);
 
     delete_transient(OUTTHINK_NEWS_IMPORT_LOCK);
+    error_log('Outthink news import completed: feed=' . $type_feed . ' created=' . $created_count);
     return true;
 }
 
@@ -206,18 +235,46 @@ function outthink_news_import_handle_manual_fetch(): void
     $news_imported = false;
 
     for ($feed = 0, $feed_count = count(OUTTHINK_NEWS_IMPORT_FEEDS); $feed < $feed_count; $feed++) {
-        $news_imported = outthink_news_import_fetch_articles() || $news_imported;
+        $feed_imported = outthink_news_import_fetch_articles();
+        error_log('Outthink manual news import attempt: iteration=' . ($feed + 1) . '/' . $feed_count . ' imported=' . ($feed_imported ? 'true' : 'false'));
+        $news_imported = $feed_imported || $news_imported;
     }
 
     $events_imported = function_exists('outthink_events_import_fetch_events') ? outthink_events_import_fetch_events() : false;
     $imported = ($news_imported || $events_imported) ? '1' : '0';
-    $redirect = remove_query_arg('outthink_news_imported', wp_get_referer() ?: home_url('/'));
+    $redirect = remove_query_arg([
+        'outthink_news_imported',
+        'outthink_news_import_news',
+        'outthink_news_import_created',
+    ], wp_get_referer() ?: home_url('/'));
+    $redirect = add_query_arg([
+        'outthink_news_imported' => $imported,
+        'outthink_news_import_news' => $news_imported ? '1' : '0',
+        'outthink_news_import_created' => (string) intval(get_option(OUTTHINK_NEWS_IMPORT_LAST_CREATED, 0)),
+    ], $redirect);
 
-    wp_safe_redirect(add_query_arg('outthink_news_imported', $imported, $redirect));
+    wp_safe_redirect($redirect);
     exit;
 }
 
 add_action('admin_post_outthink_news_import_manual', 'outthink_news_import_handle_manual_fetch');
+
+function outthink_news_import_log_manual_result(): void
+{
+    if (!current_user_can('manage_options') || !isset($_GET['outthink_news_imported'])) {
+        return;
+    }
+
+    $result = [
+        'imported' => sanitize_text_field(wp_unslash($_GET['outthink_news_imported'])),
+        'newsImported' => sanitize_text_field(wp_unslash($_GET['outthink_news_import_news'] ?? '0')),
+        'created' => intval($_GET['outthink_news_import_created'] ?? 0),
+    ];
+
+    echo '<script>console.log("Outthink manual news import result", ' . wp_json_encode($result) . ');</script>';
+}
+
+add_action('wp_footer', 'outthink_news_import_log_manual_result');
 
 function outthink_news_import_normalize_articles(array $items): array
 {
